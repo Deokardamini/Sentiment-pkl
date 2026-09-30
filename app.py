@@ -2,156 +2,133 @@ import streamlit as st
 import pickle
 import os
 
-# Page Configuration
+# 1. Page Setup
 st.set_page_config(
     page_title="Sentiment Analysis App",
     page_icon="🎭",
     layout="centered"
 )
 
-# Custom CSS for UI with Shadow Effects and Modern Styling
+# 2. Custom Styling (CSS)
 st.markdown("""
     <style>
-    /* Main Background Styling */
     .main {
-        background-color: #f4f7f6;
+        background-color: #f8f9fa;
     }
-    
-    /* Title Card with Soft Shadow */
     .title-card {
         background-color: #ffffff;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.08);
-        text-align: center;
-        margin-bottom: 25px;
-    }
-    .title-card h1 {
-        color: #2c3e50;
-        margin: 0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .title-card p {
-        color: #7f8c8d;
-        margin-top: 5px;
-        font-size: 16px;
-    }
-
-    /* Result Card Styling with Elevate Shadow */
-    .result-card {
-        padding: 20px;
+        padding: 24px;
         border-radius: 12px;
-        box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.12);
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.08);
         text-align: center;
-        font-size: 22px;
-        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .result-card {
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        font-size: 20px;
+        font-weight: 600;
         margin-top: 20px;
     }
-    
     .pos-card {
-        background-color: #e8f8f5;
-        color: #27ae60;
-        border: 2px solid #27ae60;
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
     }
-    
     .neg-card {
-        background-color: #fadbd8;
-        color: #c0392b;
-        border: 2px solid #c0392b;
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
     }
-    
     .neu-card {
-        background-color: #fcf3cf;
-        color: #f39c12;
-        border: 2px solid #f39c12;
-    }
-
-    /* Streamlit Text Area Customization */
-    .stTextArea textarea {
-        border-radius: 10px !important;
-        border: 1px solid #dcdde1 !important;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.04) !important;
-    }
-
-    /* Streamlit Button Customization */
-    .stButton>button {
-        width: 100%;
-        border-radius: 10px !important;
-        background-color: #3498db !important;
-        color: white !important;
-        font-weight: bold !important;
-        padding: 10px 0px !important;
-        box-shadow: 0px 4px 12px rgba(52, 152, 219, 0.3) !important;
-        transition: all 0.3s ease !important;
-    }
-    .stButton>button:hover {
-        background-color: #2980b9 !important;
-        box-shadow: 0px 6px 15px rgba(41, 128, 185, 0.4) !important;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Header Section
+# 3. Header UI
 st.markdown("""
     <div class="title-card">
         <h1>🎭 Sentiment Analysis Tool</h1>
-        <p>Aapka text daalein aur dekhein Sentiment Category (Positive / Negative / Neutral)</p>
+        <p>Text enter karke Sentiment Category detect karein</p>
     </div>
 """, unsafe_allow_html=True)
 
-# Load Models
+# 4. Safe Pickle Model Loading Function
 @st.cache_resource
-def load_models():
-    model_path = 'sentiment.pkl'
-    vectorizer_path = 'vectorizer.pkl'
-    
-    model = None
-    vectorizer = None
-    
-    if os.path.exists(model_path):
-        with open(model_path, 'rb') as f:
-            model = pickle.load(f)
-            
-    if os.path.exists(vectorizer_path):
-        with open(vectorizer_path, 'rb') as f:
-            vectorizer = pickle.load(f)
-            
-    return model, vectorizer
+def load_assets():
+    model_path = "sentiment.pkl"
+    vectorizer_path = "vectorizer.pkl"
 
-model, vectorizer = load_models()
+    if not os.path.exists(model_path) or not os.path.exists(vectorizer_path):
+        return None, None, "File missing error"
 
-# Form Input Section
-user_input = st.text_area("Analysis ke liye Text yahan likhein:", height=130, placeholder="Type your text here...")
+    try:
+        with open(model_path, "rb") as f_model:
+            model = pickle.load(f_model)
+        with open(vectorizer_path, "rb") as f_vec:
+            vectorizer = pickle.load(f_vec)
+        return model, vectorizer, None
+    except Exception as e:
+        return None, None, str(e)
+
+model, vectorizer, load_error = load_assets()
+
+# Display error if pickle loading failed
+if load_error:
+    if load_error == "File missing error":
+        st.error("❌ `sentiment.pkl` ya `vectorizer.pkl` file missing hai. Same folder me add karein.")
+    else:
+        st.error(f"❌ Pickle file load karne me problem aayi: {load_error}")
+        st.info("💡 Tip: Scikit-learn ka version check karein (jo model train karte waqt tha, wahi environment me hona chahiye).")
+
+# 5. User Input Form
+user_input = st.text_area(
+    "Analysis ke liye text yahan likhein:",
+    height=120,
+    placeholder="e.g., The product quality is amazing! I really loved it."
+)
 
 if st.button("Predict Sentiment"):
     if not user_input.strip():
-        st.warning("Kripya pehle kuch text enter karein!")
+        st.warning("⚠️ Kripya pehle kuch text likhein.")
     elif model is None or vectorizer is None:
-        st.error("Error: `sentiment.pkl` ya `vectorizer.pkl` file nahi mili! File directory check karein.")
+        st.error("❌ Models load nahi ho paye. Process execution cancelled.")
     else:
-        # Vectorize Input Text
-        text_vectorized = vectorizer.transform([user_input])
-        
-        # Predict Class/Category
-        prediction = model.predict(text_vectorized)[0]
-        
-        # Categorical Column Format Mapping
-        # Mapping values based on string or integer outputs from model
-        category_map = {
-            'negative': 'Negative 😡',
-            'positive': 'Positive 😊',
-            'neutral': 'Neutral 😐',
-            0: 'Negative 😡',
-            1: 'Positive 😊',
-            2: 'Neutral 😐'
-        }
-        
-        result_category = category_map.get(prediction, str(prediction))
-        
-        # Display Result with Custom Shadow Box
-        if "Positive" in result_category or prediction in ['positive', 1]:
-            st.markdown(f'<div class="result-card pos-card">Predicted Category: {result_category}</div>', unsafe_allow_html=True)
-        elif "Negative" in result_category or prediction in ['negative', 0]:
-            st.markdown(f'<div class="result-card neg-card">Predicted Category: {result_category}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="result-card neu-card">Predicted Category: {result_category}</div>', unsafe_allow_html=True)
+        try:
+            # Step 1: Text Transformation
+            vec_input = vectorizer.transform([user_input])
+            
+            # Step 2: Prediction
+            raw_prediction = model.predict(vec_input)[0]
+
+            # Step 3: Mapping Outputs (Supports String, 0/1 Binary, and 0/1/2 Multiclass)
+            clean_pred = str(raw_prediction).lower().strip()
+
+            if clean_pred in ['1', 'positive', 'pos']:
+                sentiment = "Positive 😊"
+                card_class = "pos-card"
+            elif clean_pred in ['0', 'negative', 'neg']:
+                sentiment = "Negative 😡"
+                card_class = "neg-card"
+            elif clean_pred in ['2', 'neutral', 'neu']:
+                sentiment = "Neutral 😐"
+                card_class = "neu-card"
+            else:
+                sentiment = f"Category: {raw_prediction}"
+                card_class = "neu-card"
+
+            # Step 4: Display Output
+            st.markdown(
+                f'<div class="result-card {card_class}">Predicted Sentiment: {sentiment}</div>',
+                unsafe_allow_html=True
+            )
+
+        except Exception as pred_err:
+            st.error(f"Prediction Error: {pred_err}")
+ 
+ 
