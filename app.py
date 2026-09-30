@@ -2,6 +2,46 @@ import streamlit as st
 import pickle
 import os
 
+# Page Config
+st.set_page_config(page_title="Sentiment Analysis", page_icon="🎭", layout="centered")
+
+# Title UI
+st.title("🎭 Sentiment Analysis App")
+
+# Function to load model & vectorizer safely
+@st.cache_resource
+def load_files():
+    try:
+        with open("sentiment.pkl", "rb") as f1:
+            model = pickle.load(f1)
+        with open("vectorizer.pkl", "rb") as f2:
+            vectorizer = pickle.load(f2)
+        return model, vectorizer, None
+    except Exception as e:
+        return None, None, str(e)
+
+model, vectorizer, error = load_files()
+
+if error:
+    st.error(f"❌ Pickle file load karne me issue aaya: {error}")
+    st.info("💡 Make sure `sentiment.pkl` aur `vectorizer.pkl` dono files same directory me hain.")
+else:
+    # User Input
+    text_input = st.text_area("Enter text for sentiment analysis:", placeholder="Type here...")
+
+    if st.button("Predict"):
+        if not text_input.strip():
+            st.warning("⚠️ Kripya kuch text enter karein.")
+        else:
+            # Transform and Predict
+            data = vectorizer.transform([text_input])
+            prediction = model.predict(data)[0]
+            
+            # Display Output
+            st.success(f"**Predicted Sentiment:** {prediction}")import streamlit as st
+import pickle
+import os
+
 # 1. Page Setup
 st.set_page_config(
     page_title="Sentiment Analysis App",
